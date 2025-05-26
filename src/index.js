@@ -1,10 +1,10 @@
-require('dotenv').config()
-
-const express = require('express') // Importing the express module
+import dotenv from 'dotenv'
+dotenv.config() // Load environment variables from .env file
+import express from 'express' // Importing express module for creating server
 
 const app = express() // Creating an instance of express
 
-const port = 4000 // Defining the port number server will listen on 3000 port
+const port = process.env.PORT || 4000 // Defining the port number server will listen on 3000 port
 
 const githubData = {
 
@@ -51,6 +51,7 @@ app.get('/twitter', (req, res) => {
     res.send('harshalsharmadotcom')
 })
 
+
 app.get('/login', (req, res) => {
     res.send('<h1>pleaase login at chai aur code</h1>')
 })
@@ -63,6 +64,6 @@ app.get('/github', (req, res) => {
     res.json(githubData)
 })
 
-app.listen(process.env.PORT, () => {
-  console.log(`Example app listening on port ${process.env.PORT}`)
+app.listen(port, () => {
+  console.log(`Server is running on port: http://localhost:${port}`)
 })
