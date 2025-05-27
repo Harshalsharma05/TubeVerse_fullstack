@@ -2,14 +2,29 @@
 
 // This is the entry point of the application
 import dotenv from "dotenv";
-import connectDB from "./db/db_connect.js";
+import connectDB from "./db/dbConnect.js";
+import app from "./app.js"; 
 
 dotenv.config({
     path: "./env" 
 });
 
+const port = process.env.PORT || 8000;
 
 connectDB()
+.then(() => {
+    app.on("error", (error) => {
+        console.log("ERROR !!", error);
+        throw error;
+    }); // Handle error event
+
+    app.listen(port, () => {
+        console.log(`Server is running on port ${port}`);
+    });
+})
+.catch((err) => {
+    console.error("MongoDB connection failed !!!", err)
+});
 
 
 
@@ -17,9 +32,27 @@ connectDB()
 
 
 
+// // another way of calling  connectDB by async await (more readable and understandable)
+// const startServer = async () => {
+//     try {
+//         await connectDB();
+
+//         app.on("error", (err) => {
+//             console.error("App encountered an error !!", err);
+//             throw err;
+//         });
+
+//         app.listen(port, () => {
+//             console.log(`Server is running on port ${port}`);
+//         })
 
 
-
+//     } catch (error) {
+//         console.error("MONGODB connection failed !!!", error)
+//         process.exit(1)
+//     }
+// };
+// startServer();
 
 
 /* First approach wrting the db connection code in the index.js (not recommended for production use)
