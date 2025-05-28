@@ -14,4 +14,4 @@ app.use(express.urlencoded({ extended: true, limit: '16kb' })); // Parse URL-enc
 app.use(express.static('public')); // Serve static files from the 'public' directory
 app.use(cookieParser()); // Parse cookies from request headers
 
-export { app };
+export default app;

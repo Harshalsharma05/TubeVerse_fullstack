@@ -19,7 +19,7 @@ connectDB()
     }); // Handle error event
 
     app.listen(port, () => {
-        console.log(`Server is running on port ${port}`);
+        console.log(`Server is running at http://localhost:${port}`);
     });
 })
 .catch((err) => {
