@@ -1,9 +1,7 @@
 import mongoose, {Schema} from "mongoose";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcrypt";
-import { use } from "react";
-
-
+   
 const userSchema = new Schema(
 {
     username: {
@@ -58,7 +56,7 @@ userSchema.pre("save", async function (next) {
     //     return next(new Error("Password must be at least 6 characters long"));
     // }
     
-    this.password = bcrypt.hash(this.password, 10)
+    this.password = await bcrypt.hash(this.password, 10)
     next()
 }) // pre-save hook to hash password before saving into the database
 
