@@ -223,7 +223,7 @@ const refreshAccessToken = asyncHandler( async(req, res) => {
         throw new ApiError(401, "Unauthorized request")
     }
 
-    // for safety purposes because maybe while decoding token it may throw some error (not neccessary)
+    // for safety purposes (try-catch) because maybe while decoding token it may throw some error (not neccessary)
     try { 
         const decodedToken = jwt.verify(
             incomingRefreshToken, 
