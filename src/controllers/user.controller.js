@@ -203,6 +203,7 @@ export {
     logoutUser
 }
 
+// register user logic:
 // get the data from frontend and check all the fields if given (validate - not empty)
 // check in db if user already exists by email and username or not if yes then just return
 // check for images, check for avatar (as required field) 
