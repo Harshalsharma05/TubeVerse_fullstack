@@ -61,7 +61,7 @@ userSchema.pre("save", async function (next) {
 }) // pre-save hook to hash password before saving into the database
 
 userSchema.methods.isPasswordCorrect = async function (password) { // custom method to check password
-    return await bcrypt.compare(password, this.password); // returns true or false
+    return await bcrypt.compare(password, this.password); // returns true or false (this.password is that which is in db)
 }
 
 userSchema.methods.generateAccessToken = function(){
