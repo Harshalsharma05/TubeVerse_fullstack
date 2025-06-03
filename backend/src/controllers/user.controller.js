@@ -346,11 +346,11 @@ const updateUserAvatar = asyncHandler(async(req, res) => {
     if(currentUser.avatar) {
 
         // Extract public_id from the URL
-        const parts = currentUser.avatar.split("/");
-        const fileWithExt = parts[parts.length - 1];
-        const publicId = fileWithExt.split(".")[0];
+        // const parts = currentUser.avatar.split("/");
+        // const fileWithExt = parts[parts.length - 1];
+        // const publicId = fileWithExt.split(".")[0];
 
-        await deleteFromCloudinary(publicId)
+        await deleteFromCloudinary(avatar)
     }
 
     const user = await User.findByIdAndUpdate(
