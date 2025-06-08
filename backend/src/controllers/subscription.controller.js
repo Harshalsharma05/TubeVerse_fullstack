@@ -16,7 +16,7 @@ const toggleSubscription = asyncHandler(async (req, res) => {
 
     const userId = req.user?._id
 
-    const subscribed = await Subscription.findById({
+    const subscribed = await Subscription.findOne({
         channel: channelId,
         subscriber: userId
     })
@@ -53,12 +53,12 @@ const toggleSubscription = asyncHandler(async (req, res) => {
     )
 })
 
-// controller to return subscriber list of a channel
+// controller to return subscriber count of a channel
 const getUserChannelSubscribers = asyncHandler(async (req, res) => {
-    const {channelId} = req.params
+    const {subscriberId} = req.params
 
-    if (!channelId || !isValidObjectId(channelId)) {
-        throw new ApiError(400, "Missing or Invalid channel ID");
+    if (!subscriberId || !isValidObjectId(subscriberId)) {
+        throw new ApiError(400, "Missing or Invalid user ID");
     }
 
     // const userId = req.user._id;
@@ -66,7 +66,7 @@ const getUserChannelSubscribers = asyncHandler(async (req, res) => {
     const subscribersList = await Subscription.aggregate([
         {
             $match: {
-                channel: mongoose.Types.ObjectId(channelId)
+                channel: new mongoose.Types.ObjectId(subscriberId)
             }
         },
         {
@@ -101,27 +101,27 @@ const getUserChannelSubscribers = asyncHandler(async (req, res) => {
 
 // controller to return channel list to which user has subscribed
 const getSubscribedChannels = asyncHandler(async (req, res) => {
-    const { subscriberId } = req.params
+    const { channelId } = req.params
 
-    if (!subscriberId || !isValidObjectId(subscriberId)) {
+    if (!channelId || !isValidObjectId(channelId)) {
         throw new ApiError(400, "Missing or Invalid channel ID");
     }
 
     // const userID = req.user._id;
 
     const totalCount = await Subscription.countDocuments({
-        subscriber: mongoose.Types.ObjectId(subscriberId),
+        subscriber: new mongoose.Types.ObjectId(channelId),
     });
 
     const subscribedChannels = await Subscription.aggregate([
         {
             $match: {
-                subscriber: mongoose.Types.ObjectId(subscriberId)
+                subscriber: new mongoose.Types.ObjectId(channelId)
             }
         },
         { // get subscribed channels details
             $lookup: {
-                from: "User",
+                from: "users",
                 localField: "channel",
                 foreignField: "_id",
                 as: "channelDetails",

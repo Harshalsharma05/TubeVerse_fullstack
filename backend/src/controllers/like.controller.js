@@ -15,7 +15,7 @@ const toggleVideoLike = asyncHandler(async (req, res) => {
     const userId = req.user?._id
 
     // get existing like document if was there
-    const existingLike = await Like.findById({
+    const existingLike = await Like.findOne({
         video: videoId,
         likedBy: userId 
     })
@@ -176,14 +176,14 @@ const getLikedVideos = asyncHandler(async (req, res) => {
         },
         { // to get the video document
             $lookup: {
-                from: "Video",
+                from: "videos",
                 localField: "video",
                 foreignField: "_id",
                 as: "video",
                 pipeline: [ // here we are at video document
                     {
                         $lookup: {
-                            from: "User",
+                            from: "users",
                             localField: "owner",
                             foreignField: "_id",
                             as: "owner",
@@ -245,9 +245,31 @@ const getLikedVideos = asyncHandler(async (req, res) => {
     );
 })
 
+const countVideoLikes = asyncHandler(async (req, res) => {
+    const {videoId} = req.params;
+
+    if (!videoId || !isValidObjectId(videoId)) {
+        throw new ApiError(400, "Missing or invalid video ID");
+    }
+
+    const totalLikes = await Like.countDocuments({
+        video: videoId
+    });
+
+    // if (!totalLikes) {
+    //     throw new ApiError(500, "Failed to count video likes");
+    // }
+
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(200, { videoId, totalLikes }, "Successfully counted video likes")
+    );
+})
 export {
     toggleCommentLike,
     toggleTweetLike,
     toggleVideoLike,
-    getLikedVideos
+    getLikedVideos,
+    countVideoLikes
 }

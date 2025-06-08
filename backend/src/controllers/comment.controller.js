@@ -1,15 +1,16 @@
-import mongoose from "mongoose"
+import mongoose, { isValidObjectId } from "mongoose"
 import {Comment} from "../models/comment.model.js"
 import {ApiError} from "../utils/ApiError.js"
 import {ApiResponse} from "../utils/ApiResponse.js"
 import {asyncHandler} from "../utils/asyncHandler.js"
+import {Video} from "../models/video.model.js"
 
 const getVideoComments = asyncHandler(async (req, res) => {
     //TODO: get all comments for a video
     const {videoId} = req.params
     const {page = 1, limit = 10} = req.query
 
-    if (!videoId || isValidObjectId(videoId)) {
+    if (!videoId || !isValidObjectId(videoId)) {
         return new ApiError(400, "Missing or Invalid video ID");
     }
 
@@ -23,7 +24,7 @@ const getVideoComments = asyncHandler(async (req, res) => {
         // match the comments of the video
         {
             $match: {
-                video: mongoose.Types.ObjectId(videoId),
+                video: new mongoose.Types.ObjectId(videoId),
             },
         },
         // populate the user details to it
@@ -60,6 +61,7 @@ const getVideoComments = asyncHandler(async (req, res) => {
             $project: {
                 content: 1,
                 createdBy: 1,
+                createdAt: 1,
             },
         },
         //pagination

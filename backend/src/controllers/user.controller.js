@@ -2,11 +2,12 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { User } from "../models/user.model.js";
+import { Video } from "../models/video.model.js";
 import { deleteFromCloudinary, uploadOnCloudinary } from "../utils/cloudinary.js";
 import jwt from "jsonwebtoken"
 import { subscribe } from "diagnostics_channel";
 import { log } from "console";
-import mongoose from "mongoose";
+import mongoose, { isValidObjectId } from "mongoose";
 
 
 const generateAccessAndRefreshTokens = async (userId) => {
@@ -420,7 +421,7 @@ const getUserChannelProfile = asyncHandler(async(req, res) => {
         {   
             // for how many subscribers channel has
             $lookup: { // left outer join with the subscription table with 'channel' in the subscription table
-                from: "Subscription",
+                from: "subscriptions",
                 localField: "_id",
                 foreignField: "channel",
                 as: "subscribers"
@@ -429,7 +430,7 @@ const getUserChannelProfile = asyncHandler(async(req, res) => {
         {
             // how many channels i have subscribed to
             $lookup: { 
-                from: "Subscription",
+                from: "subscriptions",
                 localField: "_id",
                 foreignField: "subscriber",
                 as: "subscribedTo"
@@ -495,14 +496,14 @@ const getWatchHistory = asyncHandler(async(req, res) => {
         },
         {
             $lookup: {
-                from: "Video",
+                from: "videos",
                 localField: "watchHistory",
                 foreignField: "_id",
                 as: "watchHistory",
                 pipeline: [ // for each video in the watchHistory array, we will get the owner details
                     {
                         $lookup: { // here we are at the videos table
-                            from: "User",
+                            from: "users",
                             localField: "owner",
                             foreignField: "_id",
                             as: "owner",
@@ -541,6 +542,46 @@ const getWatchHistory = asyncHandler(async(req, res) => {
     )
 })
 
+
+const addToWatchHistory = asyncHandler(async (req, res) => {
+    const { videoId } = req.params;
+    const userId = req.user._id;
+
+    if (!videoId || !isValidObjectId(videoId)) {
+        throw new ApiError(400, "Invalid video id");
+    }
+
+    // Check if video exists
+    const video = await Video.findById(videoId);
+    if (!video) {
+        throw new ApiError(404, "Video not found");
+    }
+
+    // Add video to watch history if not already present
+    const user = await User.findByIdAndUpdate(
+        userId,
+        {
+            $addToSet: { watchHistory: videoId } // $addToSet only adds if not already present
+        },
+        { new: true }
+    );
+
+    if (!user) {
+        throw new ApiError(500, "Failed to update watch history");
+    }
+
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(
+                200,
+                {},
+                "Added to watch history"
+            )
+        );
+});
+
+
 export { 
     registerUser,
     loginUser,
@@ -552,5 +593,6 @@ export {
     updateUserAvatar,
     updateUserCoverImage,
     getUserChannelProfile,
-    getWatchHistory
+    getWatchHistory,
+    addToWatchHistory
 }

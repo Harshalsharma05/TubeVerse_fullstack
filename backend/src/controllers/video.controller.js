@@ -1,15 +1,18 @@
-import mongoose, {isValidObjectId, mongo} from "mongoose"
+import mongoose, { isValidObjectId } from "mongoose"
 import {Video} from "../models/video.model.js"
 import {User} from "../models/user.model.js"
 import {ApiError} from "../utils/ApiError.js"
 import {ApiResponse} from "../utils/ApiResponse.js"
 import {asyncHandler} from "../utils/asyncHandler.js"
-import {deleteVideoFromCloudinary, uploadOnCloudinary} from "../utils/cloudinary.js"
+import {deleteVideoFromCloudinary, uploadOnCloudinary, deleteFromCloudinary} from "../utils/cloudinary.js"
 
 
 const getAllVideos = asyncHandler(async (req, res) => {
-    const { page = 1, limit = 10, query, sortBy = "createdAt", sortType, userId = req.user?._id } = req.query;
+    const { page = 1, limit = 10, query, sortBy, sortType, userId = req.user?._id } = req.query;
     //TODO: get all videos based on query, sort, pagination
+
+    let finalSortBy = sortBy && sortBy.trim() !== "" ? sortBy : "createdAt";
+    let finalSortType = sortType === "asc" ? 1 : -1;
 
     // steps
     // use match for query on the basis of title or description or i think we can do channel also
@@ -22,15 +25,15 @@ const getAllVideos = asyncHandler(async (req, res) => {
         {
             $match: {
                 $or: [
-                    { title: { $regex: query || "", options: "i"} },
-                    { description: { $regex: query || "", options: "i"} },
+                    { title: { $regex: query || "", $options: "i"} },
+                    { description: { $regex: query || "", $options: "i"} },
                 ]
             }
         },
         // lookup to fetch owner details
         {
             $lookup: {
-                from: "User",
+                from: "users",
                 localField: "owner",
                 foreignField: "_id",
                 as: "createdBy",
@@ -57,15 +60,17 @@ const getAllVideos = asyncHandler(async (req, res) => {
                 thumbnail: 1,
                 videoFile: 1,
                 duration: 1,
+                views: 1,
                 title: 1,
                 description: 1,
-                createdBy: 1
+                createdBy: 1,
+                createdAt: 1,
             }
         },
         // sorting
         {
             $sort: {
-                [sortBy]: sortType === "asc" ? 1 : -1,
+                [finalSortBy]: finalSortType === "asc" ? 1 : -1,
             }
         },
         //pagination
@@ -86,7 +91,7 @@ const getAllVideos = asyncHandler(async (req, res) => {
         .json(
             new ApiResponse(
                 200,
-                allVideos[0],
+                allVideos,
                 "All videos fetched successfully"
             )
         );
@@ -140,13 +145,23 @@ const publishAVideo = asyncHandler(async (req, res) => {
         })
     
         if (!video) {
-          throw new ApiError(500, "Something went wrong while uploading a video");
+        throw new ApiError(500, "Something went wrong while uploading a video");
         }
+
+        return res
+        .status(200)
+        .json(
+            new ApiResponse(
+                200,
+                video,
+                "Video uploaded successfully"
+            )
+        )
     } catch (error) {
         console.log("Error while uploading a video", error);
 
         if (videoFile) {
-            await deleteFromCloudinary(videoFile.public_id);
+            await deleteVideoFromCloudinary(videoFile.public_id);
         }
 
         if (thumbnailFile) {
@@ -155,17 +170,6 @@ const publishAVideo = asyncHandler(async (req, res) => {
 
         throw new ApiError(500, "Something went wrong while uploading the video and video file and thumbnail deleted");
     }
-
-    return res
-    .status(200)
-    .json(
-        new ApiResponse(
-            200,
-            video,
-            "Video uploaded successfully"
-        )
-    )
-
 })
 
 const getVideoById = asyncHandler(async (req, res) => {
@@ -348,11 +352,43 @@ const togglePublishStatus = asyncHandler(async (req, res) => {
     )
 })
 
+
+const incrementViews = asyncHandler(async (req, res) => {
+    const { videoId } = req.params;
+
+    if (!videoId || !isValidObjectId(videoId)) {
+        throw new ApiError(400, "Invalid video id");
+    }
+
+    const video = await Video.findByIdAndUpdate(
+        videoId,
+        {
+            $inc: { views: 1 }
+        },
+        { new: true }
+    );
+
+    if (!video) {
+        throw new ApiError(404, "Video not found");
+    }
+
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(
+                200,
+                { views: video.views },
+                "View count updated"
+            )
+        );
+});
+
 export {
     getAllVideos,
     publishAVideo,
     getVideoById,
     updateVideo,
     deleteVideo,
-    togglePublishStatus
+    togglePublishStatus,
+    incrementViews
 }
