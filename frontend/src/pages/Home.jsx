@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import axios from '../config/axios';
 import VideoCard from '../components/common/VideoCard';
 import toast from 'react-hot-toast';
+import { useAuth } from '../context/AuthContext';
 
 const VIDEOS_PER_PAGE = 12;
 
@@ -12,6 +13,30 @@ const Home = () => {
     const [loading, setLoading] = useState(false);
     const [page, setPage] = useState(1);
     const [hasMore, setHasMore] = useState(true);
+    const [playlists, setPlaylists] = useState([]);
+    const { user } = useAuth();
+
+    // Fetch user playlists
+    const fetchPlaylists = async () => {
+        try {
+            // Get user ID from AuthContext
+            if (!user?._id) {
+                console.log('No user found, skipping playlist fetch');
+                return;
+            }
+
+            const response = await axios.get(`/playlist/user/${user._id}`);
+            
+            // Handle different possible response structures
+            const playlistData = response.data.data || response.data.playlists || response.data || [];
+            setPlaylists(playlistData);
+            
+        } catch (error) {
+            console.error('Error fetching playlists:', error);
+            // Don't show toast error for playlists as it's not critical
+            setPlaylists([]);
+        }
+    };
 
     const fetchVideos = async (reset = false) => {
         try {
@@ -47,16 +72,52 @@ const Home = () => {
         }
     };
 
+    // Handle adding video to playlist
+    const handleAddToPlaylist = async (videoId, playlistId) => {
+        try {
+            // Adjust the endpoint based on your backend API
+            const response = await axios.patch(`/playlist/add/${videoId}/${playlistId}`, {
+                playlistId: playlistId,
+                videoId: videoId
+            });
+            
+            if (response.status === 200 || response.status === 201) {
+                toast.success('Video added to playlist successfully!');
+            }
+        } catch (error) {
+            console.error('Error adding video to playlist:', error);
+            toast.error(error.response?.data?.message || 'Failed to add video to playlist');
+        }
+    };
+
     useEffect(() => {
         fetchVideos(true);
-    }, [searchParams]);
+        // Fetch playlists when component mounts and user is available
+        if (user?._id) {
+            fetchPlaylists();
+        }
+    }, [searchParams, user]);
+
+    // Fetch playlists when user changes (login/logout)
+    useEffect(() => {
+        if (user?._id) {
+            fetchPlaylists();
+        } else {
+            setPlaylists([]); // Clear playlists when user logs out
+        }
+    }, [user]);
 
     return (
         <div className="container mx-auto my-12 px-4 py-8">
             {/* Videos Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                 {videos.map((video) => (
-                    <VideoCard key={video._id} video={video} />
+                    <VideoCard 
+                        key={video._id} 
+                        video={video} 
+                        playlists={playlists}
+                        onAddToPlaylist={handleAddToPlaylist}
+                    />
                 ))}
             </div>
 

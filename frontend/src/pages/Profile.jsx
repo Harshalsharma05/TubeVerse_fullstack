@@ -18,29 +18,35 @@ const Profile = () => {
         const fetchChannelData = async () => {
             try {
                 setLoading(true);
-                
-                // If no username in params, use current user's username
-                const channelUsername = username || user?.username;
-                
-                if (!channelUsername) {
-                    toast.error('No channel specified');
-                    navigate('/');
-                    return;
-                }
 
-                // Fetch channel profile
-                const profileResponse = await axios.get(`/users/channel/${channelUsername}`);
+                // Always fetch the channel profile by username in URL
+                const profileResponse = await axios.get(`/users/channel/${username}`);
                 setChannelData(profileResponse.data.data);
 
-                // Only fetch stats if it's the current user's profile
-                if (channelUsername === user?.username) {
+                // If viewing your own profile, fetch stats and videos from dashboard endpoints
+                if (user && username === user.username) {
                     const statsResponse = await axios.get('/dashboard/stats');
                     setChannelStats(statsResponse.data.data);
-                }
 
-                // Fetch user's videos
-                const videosResponse = await axios.get('/dashboard/videos');
-                setUserVideos(videosResponse.data.data);
+                    const videosResponse = await axios.get('/dashboard/videos');
+                    setUserVideos(videosResponse.data.data);
+                } else {
+                    // For other users, use public endpoints
+                    // You may need to create a backend endpoint to get videos by userId
+                    const userId = profileResponse.data.data._id;
+                    // Example: /videos?userId=...
+                    const videosResponse = await axios.get(`/public/videos/${userId}`);
+                    setUserVideos(videosResponse.data.data.video);
+
+                    // For stats, use the data from the profile response if available,
+                    // or create a public stats endpoint if needed.
+                    setChannelStats({
+                        totalSubscribers: profileResponse.data.data.totalSubscribers,
+                        totalVideos: videosResponse.data.data.video.length,
+                        totalViews: videosResponse.data.data.video.reduce((sum, v) => sum + (v.views || 0), 0),
+                        totalLikes: videosResponse.data.data.totalLikes // You may need a public endpoint for this
+                    });
+                }
             } catch (error) {
                 console.error('Error fetching channel data:', error);
                 toast.error('Failed to load channel data');
@@ -50,8 +56,10 @@ const Profile = () => {
             }
         };
 
-        fetchChannelData();
-    }, [username, user]);
+        if (username) {
+            fetchChannelData();
+        }
+    }, [username, user, navigate]);
 
     if (loading) {
         return <div className="flex justify-center items-center min-h-screen">Loading...</div>;
@@ -84,7 +92,7 @@ const Profile = () => {
                     {/* Stats Grid */}
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
                         <div className="bg-gray-50 p-4 rounded-lg text-center">
-                            <h3 className="text-2xl font-bold">{channelStats?.totalSubscribers}</h3>
+                            <h3 className="text-2xl font-bold">{channelStats?.totalSubscribers ?? channelData?.subscribersCount}</h3>
                             <p className="text-gray-600">Subscribers</p>
                         </div>
                         <div className="bg-gray-50 p-4 rounded-lg text-center">
@@ -96,7 +104,7 @@ const Profile = () => {
                             <p className="text-gray-600">Total Views</p>
                         </div>
                         <div className="bg-gray-50 p-4 rounded-lg text-center">
-                            <h3 className="text-2xl font-bold">{channelStats?.totalLikes}</h3>
+                            <h3 className="text-2xl font-bold">{channelStats?.totalLikes ?? '-'}</h3>
                             <p className="text-gray-600">Total Likes</p>
                         </div>
                     </div>

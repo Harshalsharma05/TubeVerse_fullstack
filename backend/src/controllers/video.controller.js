@@ -352,21 +352,37 @@ const togglePublishStatus = asyncHandler(async (req, res) => {
     )
 })
 
-
 const incrementViews = asyncHandler(async (req, res) => {
     const { videoId } = req.params;
+    const userId = req.user?._id;
 
     if (!videoId || !isValidObjectId(videoId)) {
         throw new ApiError(400, "Invalid video id");
     }
+    
+    const user = await User.findById(userId);
+    if (!user) {
+        throw new ApiError(404, "User not found");
+    }
+    console.log("user ID: ", userId);
+    
+    const alreadyWatched = user.watchHistory.some(
+        (id) => id.toString() === videoId.toString()
+    ); // check if the video is already in the watch history
 
-    const video = await Video.findByIdAndUpdate(
-        videoId,
-        {
-            $inc: { views: 1 }
-        },
-        { new: true }
-    );
+    let video;
+    if (!alreadyWatched) {
+        video = await Video.findByIdAndUpdate(
+            videoId,
+            {
+                $inc: { views: 1 }
+            },
+            { new: true }
+        );
+    } else {
+        video = await Video.findById(videoId);
+    }
+    
 
     if (!video) {
         throw new ApiError(404, "Video not found");

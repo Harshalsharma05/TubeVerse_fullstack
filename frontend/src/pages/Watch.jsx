@@ -22,7 +22,7 @@ const Watch = () => {
     const [commentText, setCommentText] = useState('');
     const [subscriberCount, setSubscriberCount] = useState(0);
     const [likeCount, setLikeCount] = useState(0);
-    const [hasUpdatedView, setHasUpdatedView] = useState(false);
+    // const [hasUpdatedView, setHasUpdatedView] = useState(false);
 
     const fetchSubscriberCount = async (channelId) => {
         try {
@@ -44,30 +44,12 @@ const Watch = () => {
 
     const updateWatchHistoryAndViews = async () => {
         try {
-            // Check if this video has been viewed in this session
-            const viewedVideos = JSON.parse(localStorage.getItem('viewedVideos') || '{}');
-            
-            // If video hasn't been viewed in last 24 hours, update view count
-            const lastViewTime = viewedVideos[videoId];
-            const twentyFourHoursAgo = Date.now() - (24 * 60 * 60 * 1000);
-            
-            if (!lastViewTime || lastViewTime < twentyFourHoursAgo) {
-                // First, add video to watch history
-                await axios.post(`/users/history/${videoId}`, {}, {
-                    withCredentials: true
-                });
+            // Add to watch history (backend deduplicates)
+            await axios.post(`/users/history/${videoId}`);
 
-                // Update local storage with current timestamp
-                viewedVideos[videoId] = Date.now();
-                localStorage.setItem('viewedVideos', JSON.stringify(viewedVideos));
-                
-                // Then increment view count
-                await axios.patch(`/videos/${videoId}/views`, {}, {
-                    withCredentials: true
-                });
-            }
-
-            setHasUpdatedView(true);
+            // Increment views (backend only increments if not already watched)
+            const res = await axios.patch(`/videos/${videoId}/views`, {}, { withCredentials: true });
+            console.log('View count response:', res.data);
         } catch (error) {
             console.error('Error updating watch history and views:', error);
         }
@@ -81,11 +63,9 @@ const Watch = () => {
                 const videoResponse = await axios.get(`/videos/${videoId}`);
                 const videoData = videoResponse.data.data;
                 setVideo(videoData);
-
-                // Update watch history and views only if not already updated
-                if (!hasUpdatedView) {
-                    await updateWatchHistoryAndViews();
-                }
+                
+                // Always call this, backend will deduplicate
+                await updateWatchHistoryAndViews();
 
                 // Fetch subscriber count for the video owner
                 if (videoData?.owner?._id) {
@@ -117,11 +97,6 @@ const Watch = () => {
         };
 
         fetchVideoData();
-        
-        // Cleanup function
-        return () => {
-            setHasUpdatedView(false);
-        };
     }, [videoId]);
 
     const handleLike = async () => {

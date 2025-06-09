@@ -186,7 +186,7 @@ const getLikedVideos = asyncHandler(async (req, res) => {
                             from: "users",
                             localField: "owner",
                             foreignField: "_id",
-                            as: "owner",
+                            as: "createdBy",
                             pipeline: [
                                 {
                                     $project: {
@@ -200,8 +200,8 @@ const getLikedVideos = asyncHandler(async (req, res) => {
                     },
                     {
                         $addFields: { // this will add the owner field to the video document
-                            owner: {
-                                $first: "$owner" // since owner is an array, we take the first element
+                            createdBy: {
+                                $first: "$createdBy" // since owner is an array, we take the first element
                                 // this will store it directly as an object
                             }
                         }
@@ -215,7 +215,7 @@ const getLikedVideos = asyncHandler(async (req, res) => {
                             videoFile: 1,
                             views: 1,
                             createdAt: 1,
-                            owner: 1
+                            createdBy: 1
                         }
                     }
                 ]

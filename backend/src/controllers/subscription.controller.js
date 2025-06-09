@@ -150,9 +150,9 @@ const getSubscribedChannels = asyncHandler(async (req, res) => {
         }
     ])
 
-    if(!subscribedChannels?.length) {
-        throw new ApiError(404, "No subscriptions")
-    }
+    // if(!subscribedChannels?.length) {
+    //     throw new ApiError(404, "No subscriptions")
+    // }
 
     return res
     .status(200)

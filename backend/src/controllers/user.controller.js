@@ -582,6 +582,34 @@ const addToWatchHistory = asyncHandler(async (req, res) => {
 });
 
 
+const clearWatchHistory = asyncHandler(async (req, res) => {
+    const userId = req.user._id;
+
+    // Clear watch history by setting it to an empty array
+    const user = await User.findByIdAndUpdate(
+        userId,
+        {
+            $set: { watchHistory: [] } // Set watchHistory to an empty array
+        },
+        { new: true });
+
+    if (!user) {
+        throw new ApiError(500, "Failed to clear watch history");
+    }
+
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(
+                200,
+                {},
+                "Watch history cleared successfully"
+            )
+    );
+});
+
+
+
 export { 
     registerUser,
     loginUser,
@@ -594,5 +622,6 @@ export {
     updateUserCoverImage,
     getUserChannelProfile,
     getWatchHistory,
-    addToWatchHistory
+    addToWatchHistory,
+    clearWatchHistory
 }

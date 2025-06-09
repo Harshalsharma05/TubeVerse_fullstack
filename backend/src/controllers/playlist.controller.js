@@ -49,13 +49,13 @@ const getUserPlaylists = asyncHandler(async (req, res) => {
   const userPlaylists = await Playlist.aggregate([
     {
       $match: {
-        owner: mongoose.Types.ObjectId(userId),
+        owner: new mongoose.Types.ObjectId(userId),
       },
     },
     {
       // for owner details
       $lookup: {
-        from: "User",
+        from: "users",
         localField: "owner",
         foreignField: "_id",
         as: "createdBy",
@@ -81,7 +81,7 @@ const getUserPlaylists = asyncHandler(async (req, res) => {
     // lookup for getting video details
     {
       $lookup: {
-        from: "Video",
+        from: "videos",
         localField: "videos",
         foreignField: "_id",
         as: "videos",
@@ -89,7 +89,7 @@ const getUserPlaylists = asyncHandler(async (req, res) => {
           {
             // sub pipeline for getting user details of each video document
             $lookup: {
-              from: "User",
+              from: "users",
               localField: "owner",
               foreignField: "_id",
               as: "owner",
@@ -165,13 +165,13 @@ const getPlaylistById = asyncHandler(async (req, res) => {
         //match the owner's all playlists
         {
             $match: {
-                _id: mongoose.Types.ObjectId(playlistId),
+                _id: new mongoose.Types.ObjectId(playlistId),
             },
         },
         // lookup for getting owner's details
         {
             $lookup: {
-                from: "User",
+                from: "users",
                 localField: "owner",
                 foreignField: "_id",
                 as: "createdBy",
@@ -198,7 +198,7 @@ const getPlaylistById = asyncHandler(async (req, res) => {
         // this lookup if for videos
         {
             $lookup: {
-                from: "Video",
+                from: "videos",
                 localField: "videos",
                 foreignField: "_id",
                 as: "videos",
@@ -206,7 +206,7 @@ const getPlaylistById = asyncHandler(async (req, res) => {
                     // further lookup to get the owner details of the video
                     {
                         $lookup: {
-                            from: "User",
+                            from: "users",
                             localField: "owner",
                             foreignField: "_id",
                             as: "owner",
