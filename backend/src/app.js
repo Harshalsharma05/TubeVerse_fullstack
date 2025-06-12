@@ -7,7 +7,7 @@ const app = express();
 
 // Middlewares setup
 app.use(cors({
-    origin: "http://localhost:5173",
+    origin: ["http://localhost:5173", "https://tube-verse-fullstack-mern.vercel.app/"],
     credentials: true,
 }))
 
