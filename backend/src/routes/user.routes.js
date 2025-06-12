@@ -12,6 +12,7 @@ import { changeCurrentPassword,
         updateUserCoverImage,
         addToWatchHistory,
         clearWatchHistory,
+        clearAVideoFromWatchHistory
     } from "../controllers/user.controller.js";
 import { upload } from "../middlewares/multer.middleware.js"
 import { verifyJWT } from "../middlewares/auth.middleware.js"
@@ -55,6 +56,8 @@ router.route("/history").get(verifyJWT, getWatchHistory)
 router.route("/history/:videoId").post(verifyJWT, addToWatchHistory)
 
 router.route("/history/clear").patch(verifyJWT, clearWatchHistory)
+
+router.route("/history/:videoId/clear").delete(verifyJWT, clearAVideoFromWatchHistory)
 
 // router.route("/channel/:username").get(getChannelStatsByUsername)
 

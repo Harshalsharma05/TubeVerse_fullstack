@@ -33,6 +33,28 @@ const Watch = () => {
         }
     };
 
+    // Check subscription status using localStorage as backup and making a test call
+    const checkSubscriptionStatus = async (channelId) => {
+        try {
+            // First check localStorage for the subscription status
+            const storedStatus = localStorage.getItem(`subscription_${channelId}`);
+            if (storedStatus !== null) {
+                const isStoredSubscribed = JSON.parse(storedStatus);
+                setIsSubscribed(isStoredSubscribed);
+                return;
+            }
+
+            // If not in localStorage, we can try to determine it by making a controlled test
+            // Since we don't have a direct endpoint, we'll assume not subscribed initially
+            // The real status will be determined after the first toggle action
+            setIsSubscribed(false);
+            
+        } catch (error) {
+            console.error('Error checking subscription status:', error);
+            setIsSubscribed(false);
+        }
+    };
+
     const fetchLikeCount = async () => {
         try {
             const response = await axios.get(`/likes/count/v/${videoId}`);
@@ -45,7 +67,7 @@ const Watch = () => {
     const updateWatchHistoryAndViews = async () => {
         try {
             // Add to watch history (backend deduplicates)
-            await axios.post(`/users/history/${videoId}`);
+            await axios.patch(`/videos/${videoId}/views`);
 
             // Increment views (backend only increments if not already watched)
             const res = await axios.patch(`/videos/${videoId}/views`, {}, { withCredentials: true });
@@ -70,6 +92,8 @@ const Watch = () => {
                 // Fetch subscriber count for the video owner
                 if (videoData?.owner?._id) {
                     await fetchSubscriberCount(videoData.owner._id);
+                    // Check subscription status for the video owner
+                    await checkSubscriptionStatus(videoData.owner._id);
                 }
 
                 // Fetch like count
@@ -116,9 +140,19 @@ const Watch = () => {
             return;
         }
         try {
-            await axios.post(`/subscriptions/c/${video.owner._id}`);
-            setIsSubscribed(!isSubscribed);
-            toast.success(isSubscribed ? 'Unsubscribed successfully' : 'Subscribed successfully');
+            const response = await axios.post(`/subscriptions/c/${video.owner._id}`);
+            
+            // Get the subscription status from the response
+            const newSubscriptionStatus = response.data.data.isSubscribed;
+            setIsSubscribed(newSubscriptionStatus);
+            
+            // Store the subscription status in localStorage for persistence
+            localStorage.setItem(`subscription_${video.owner._id}`, JSON.stringify(newSubscriptionStatus));
+            
+            // Refresh subscriber count to show updated count
+            await fetchSubscriberCount(video.owner._id);
+            
+            toast.success(newSubscriptionStatus ? 'Subscribed successfully' : 'Unsubscribed successfully');
         } catch (error) {
             toast.error('Failed to update subscription');
         }

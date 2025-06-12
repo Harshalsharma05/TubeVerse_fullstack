@@ -2,13 +2,17 @@ import React, { useEffect, useState } from "react";
 import axios from '../config/axios';
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { formatDistanceToNow, parseISO } from 'date-fns';
-import { Play, Clock, Eye, MoreVertical, Trash2, Edit3, Share } from 'lucide-react';
+import { Play, Clock, Eye, MoreVertical, Trash2, Edit3, Share, X } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 const PlaylistDetailPage = () => {
   const { playlistId } = useParams();
   const [playlist, setPlaylist] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showMenu, setShowMenu] = useState(false);
+  const [showEdit, setShowEdit] = useState(false);
+  const [editForm, setEditForm] = useState({ name: "", description: "" });
+  const [updating, setUpdating] = useState(false);
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
   const navigate = useNavigate();
 
@@ -27,14 +31,74 @@ const PlaylistDetailPage = () => {
     fetchPlaylist();
   }, [playlistId]);
 
-  const handleRemoveVideo = async (videoId) => {
+  const handleEdit = () => {
+    if (!playlist) return;
+    
+    setEditForm({
+      name: playlist.name,
+      description: playlist.description || ""
+    });
+    setShowEdit(true);
+    setShowMenu(false);
+  };
+
+  const handleUpdateSubmit = async (e) => {
+    e.preventDefault();
+    if (!playlist) return;
+
+    // Validate form
+    if (!editForm.name.trim()) {
+      toast.error('Playlist name is required');
+      return;
+    }
+
+    if (!editForm.description.trim()) {
+      toast.error('Playlist description is required');
+      return;
+    }
+
+    setUpdating(true);
     try {
-      await axios.patch(`/playlist/remove/${videoId}/${playlistId}`);
-      // Refresh playlist
-      const res = await axios.get(`/playlist/${playlistId}`);
-      setPlaylist(res.data.data[0]);
+      const response = await axios.patch(`/playlist/${playlist._id}`, {
+        name: editForm.name.trim(),
+        description: editForm.description.trim()
+      });
+
+      // Update the playlist in the local state
+      setPlaylist(prevPlaylist => ({
+        ...prevPlaylist,
+        ...response.data.data
+      }));
+
+      setShowEdit(false);
+      setEditForm({ name: "", description: "" });
+      toast.success('Playlist updated successfully!');
     } catch (error) {
-      console.error('Error removing video:', error);
+      console.error('Error updating playlist:', error);
+      const errorMessage = error.response?.data?.message || 'Failed to update playlist';
+      toast.error(errorMessage);
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const cancelEdit = () => {
+    setShowEdit(false);
+    setEditForm({ name: "", description: "" });
+  };
+
+  const handleRemoveVideo = async (videoId) => {
+    if (window.confirm('Are you sure you want to remove this video from the playlist?')) {
+      try {
+        await axios.patch(`/playlist/remove/${videoId}/${playlistId}`);
+        // Refresh playlist
+        const res = await axios.get(`/playlist/${playlistId}`);
+        setPlaylist(res.data.data[0]);
+        toast.success('Video removed from playlist successfully!');
+      } catch (error) {
+        console.error('Error removing video:', error);
+        toast.error(error.response?.data?.message || 'Failed to remove video');
+      }
     }
   };
 
@@ -42,9 +106,11 @@ const PlaylistDetailPage = () => {
     if (window.confirm('Are you sure you want to delete this playlist? This action cannot be undone.')) {
       try {
         await axios.delete(`/playlist/${playlistId}`);
+        toast.success('Playlist deleted successfully!');
         navigate("/playlist");
       } catch (error) {
         console.error('Error deleting playlist:', error);
+        toast.error(error.response?.data?.message || 'Failed to delete playlist');
       }
     }
   };
@@ -101,7 +167,7 @@ const PlaylistDetailPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 my-20">
       <div className="max-w-7xl mx-auto my-12 px-4 py-6">
         <div className="flex flex-col lg:flex-row gap-6">
           {/* Playlist Info Sidebar */}
@@ -132,7 +198,7 @@ const PlaylistDetailPage = () => {
               <h1 className="text-2xl font-bold mb-2 line-clamp-2">{playlist.name}</h1>
               
               <div className="text-sm text-white/90 mb-4">
-                <p className="mb-1">{playlist.owner || 'Unknown'}</p>
+                <p className="mb-1">{playlist.createdBy.fullName || 'Unknown'}</p>
                 <p className="mb-1">{playlist.videos?.length || 0} videos</p>
                 <p className="mb-2">{formatTotalDuration()}</p>
                 <p className="text-xs">
@@ -160,7 +226,14 @@ const PlaylistDetailPage = () => {
                   Play all
                 </button>
                 
-                <div className="relative">
+                <div className="relative z-50">
+                  {/* Click outside to close menu */}
+                  {showMenu && (
+                    <div 
+                      className="fixed inset-0 z-0" 
+                      onClick={() => setShowMenu(false)}
+                    />
+                  )}
                   <button 
                     className="w-full bg-white/20 text-white py-2 px-4 rounded-full font-medium hover:bg-white/30 transition-colors flex items-center justify-center gap-2"
                     onClick={() => setShowMenu(!showMenu)}
@@ -170,18 +243,36 @@ const PlaylistDetailPage = () => {
                   </button>
                   
                   {showMenu && (
-                    <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-lg shadow-lg z-10 overflow-hidden">
-                      <button className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-3 text-gray-700">
+                    <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-lg shadow-xl z-50 overflow-hidden border border-gray-200">
+                      <button 
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleEdit();
+                        }}
+                        className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-3 text-gray-700 transition-colors"
+                      >
                         <Edit3 size={16} />
                         Edit playlist
                       </button>
-                      <button className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-3 text-gray-700">
+                      <button 
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          console.log('Share clicked');
+                        }}
+                        className="w-full text-left px-4 py-3 hover:bg-gray-50 flex items-center gap-3 text-gray-700 transition-colors"
+                      >
                         <Share size={16} />
                         Share playlist
                       </button>
-                      <button 
-                        onClick={handleDeletePlaylist}
-                        className="w-full text-left px-4 py-3 hover:bg-red-50 flex items-center gap-3 text-red-600"
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleDeletePlaylist();
+                        }}
+                        className="w-full text-left px-4 py-3 hover:bg-red-50 flex items-center gap-3 text-red-600 transition-colors"
                       >
                         <Trash2 size={16} />
                         Delete playlist
@@ -295,13 +386,74 @@ const PlaylistDetailPage = () => {
         </div>
       </div>
 
-      {/* Click outside to close menu */}
-      {showMenu && (
-        <div 
-          className="fixed inset-0 z-0" 
-          onClick={() => setShowMenu(false)}
-        />
+      {/* Edit Playlist Modal */}
+      {showEdit && playlist && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold text-gray-900">Edit Playlist</h2>
+              <button
+                onClick={cancelEdit}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+                disabled={updating}
+              >
+                <X size={24} />
+              </button>
+            </div>
+            
+            <form onSubmit={handleUpdateSubmit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Playlist Name *
+                </label>
+                <input
+                  type="text"
+                  placeholder="Enter playlist name"
+                  value={editForm.name}
+                  onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none transition-all"
+                  required
+                  disabled={updating}
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Description *
+                </label>
+                <textarea
+                  placeholder="Tell viewers about your playlist"
+                  value={editForm.description}
+                  onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))}
+                  rows={3}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none transition-all resize-none"
+                  required
+                  disabled={updating}
+                />
+              </div>
+              
+              <div className="flex gap-3 pt-4">
+                <button
+                  type="submit"
+                  disabled={updating}
+                  className="flex-1 bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white py-3 rounded-lg font-medium transition-colors"
+                >
+                  {updating ? 'Updating...' : 'Update Playlist'}
+                </button>
+                <button
+                  type="button"
+                  onClick={cancelEdit}
+                  disabled={updating}
+                  className="flex-1 bg-gray-200 hover:bg-gray-300 disabled:bg-gray-100 text-gray-800 py-3 rounded-lg font-medium transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
+
     </div>
   );
 };

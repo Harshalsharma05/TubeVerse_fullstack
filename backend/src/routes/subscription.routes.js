@@ -3,6 +3,7 @@ import {
     getSubscribedChannels,
     getUserChannelSubscribers,
     toggleSubscription,
+    getSubscriptionStatus
 } from "../controllers/subscription.controller.js"
 import {verifyJWT} from "../middlewares/auth.middleware.js"
 
@@ -15,5 +16,7 @@ router
     .post(toggleSubscription);
 
 router.route("/u/:subscriberId").get(getUserChannelSubscribers);
+
+// router.route("/status/c/:channelId").get(getSubscriptionStatus);
 
 export default router

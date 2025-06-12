@@ -506,7 +506,7 @@ const getWatchHistory = asyncHandler(async(req, res) => {
                             from: "users",
                             localField: "owner",
                             foreignField: "_id",
-                            as: "owner",
+                            as: "createdBy",
                             pipeline: [
                                 {
                                     $project: {
@@ -520,8 +520,8 @@ const getWatchHistory = asyncHandler(async(req, res) => {
                     },
                     {
                         $addFields: {
-                            owner: {
-                                $first: "$owner" // it will return the first element of the owner array (watchHistory is an array of videos, and each video has an owner which is an array of users)
+                            createdBy: {
+                                $first: "$createdBy" // it will return the first element of the owner array (watchHistory is an array of videos, and each video has an owner which is an array of users)
                                 // so we are getting the first element of the owner array
                             }
                         }
@@ -608,7 +608,37 @@ const clearWatchHistory = asyncHandler(async (req, res) => {
     );
 });
 
+const clearAVideoFromWatchHistory = asyncHandler(async (req, res) => {
+    const { videoId } = req.params;
+    const userId = req.user._id;
 
+    if (!videoId || !isValidObjectId(videoId)) {
+        throw new ApiError(400, "Invalid video id");
+    }
+
+    // Remove video from watch history
+    const user = await User.findByIdAndUpdate(
+        userId,
+        {
+            $pull: { watchHistory: videoId } // $pull removes the specified value from an array
+        },
+        { new: true }
+    );
+
+    if (!user) {
+        throw new ApiError(500, "Failed to remove video from watch history");
+    }
+
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(
+                200,
+                {},
+                "Video removed from watch history"
+            )
+        );
+});
 
 export { 
     registerUser,
@@ -623,5 +653,6 @@ export {
     getUserChannelProfile,
     getWatchHistory,
     addToWatchHistory,
-    clearWatchHistory
+    clearWatchHistory,
+    clearAVideoFromWatchHistory
 }

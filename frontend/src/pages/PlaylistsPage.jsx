@@ -4,14 +4,19 @@ import { useAuth } from "../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { Plus, Play, Lock, Globe, MoreVertical, Edit3, Trash2, X } from 'lucide-react';
 import { formatDistanceToNow, parseISO } from 'date-fns';
+import toast from 'react-hot-toast';
 
 const PlaylistsPage = () => {
   const { user } = useAuth();
   const [playlists, setPlaylists] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
+  const [showEdit, setShowEdit] = useState(false);
+  const [editingPlaylist, setEditingPlaylist] = useState(null);
   const [form, setForm] = useState({ name: "", description: "", isPublic: true });
+  const [editForm, setEditForm] = useState({ name: "", description: "" });
   const [showMenu, setShowMenu] = useState(null);
+  const [updating, setUpdating] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -41,8 +46,64 @@ const PlaylistsPage = () => {
       // Refresh playlists
       const res = await axios.get(`/playlist/user/${user._id}`);
       setPlaylists(res.data.data || []);
+      toast.success('Playlist created successfully!');
     } catch (error) {
       console.error('Error creating playlist:', error);
+      toast.error(error.response?.data?.message || 'Failed to create playlist');
+    }
+  };
+
+  const handleEdit = (playlist) => {
+    setEditingPlaylist(playlist);
+    setEditForm({
+      name: playlist.name,
+      description: playlist.description || ""
+    });
+    setShowEdit(true);
+    setShowMenu(null);
+  };
+
+  const handleUpdateSubmit = async (e) => {
+    e.preventDefault();
+    if (!editingPlaylist) return;
+
+    // Validate form
+    if (!editForm.name.trim()) {
+      toast.error('Playlist name is required');
+      return;
+    }
+
+    if (!editForm.description.trim()) {
+      toast.error('Playlist description is required');
+      return;
+    }
+
+    setUpdating(true);
+    try {
+      const response = await axios.patch(`/playlist/${editingPlaylist._id}`, {
+        name: editForm.name.trim(),
+        description: editForm.description.trim()
+      });
+
+      // Update the playlist in the local state
+      setPlaylists(prevPlaylists => 
+        prevPlaylists.map(pl => 
+          pl._id === editingPlaylist._id 
+            ? { ...pl, ...response.data.data }
+            : pl
+        )
+      );
+
+      setShowEdit(false);
+      setEditingPlaylist(null);
+      setEditForm({ name: "", description: "" });
+      toast.success('Playlist updated successfully!');
+    } catch (error) {
+      console.error('Error updating playlist:', error);
+      const errorMessage = error.response?.data?.message || 'Failed to update playlist';
+      toast.error(errorMessage);
+    } finally {
+      setUpdating(false);
     }
   };
 
@@ -52,10 +113,18 @@ const PlaylistsPage = () => {
         await axios.delete(`/playlist/${playlistId}`);
         setPlaylists(playlists.filter(pl => pl._id !== playlistId));
         setShowMenu(null);
+        toast.success('Playlist deleted successfully!');
       } catch (error) {
         console.error('Error deleting playlist:', error);
+        toast.error(error.response?.data?.message || 'Failed to delete playlist');
       }
     }
+  };
+
+  const cancelEdit = () => {
+    setShowEdit(false);
+    setEditingPlaylist(null);
+    setEditForm({ name: "", description: "" });
   };
 
   const getPlaylistThumbnail = (playlist) => {
@@ -196,6 +265,74 @@ const PlaylistsPage = () => {
           </div>
         )}
 
+        {/* Edit Playlist Modal */}
+        {showEdit && editingPlaylist && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-2xl">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-bold text-gray-900">Edit Playlist</h2>
+                <button
+                  onClick={cancelEdit}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                  disabled={updating}
+                >
+                  <X size={24} />
+                </button>
+              </div>
+              
+              <form onSubmit={handleUpdateSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Playlist Name *
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Enter playlist name"
+                    value={editForm.name}
+                    onChange={e => setEditForm(f => ({ ...f, name: e.target.value }))}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none transition-all"
+                    required
+                    disabled={updating}
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Description *
+                  </label>
+                  <textarea
+                    placeholder="Tell viewers about your playlist"
+                    value={editForm.description}
+                    onChange={e => setEditForm(f => ({ ...f, description: e.target.value }))}
+                    rows={3}
+                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none transition-all resize-none"
+                    required
+                    disabled={updating}
+                  />
+                </div>
+                
+                <div className="flex gap-3 pt-4">
+                  <button
+                    type="submit"
+                    disabled={updating}
+                    className="flex-1 bg-red-600 hover:bg-red-700 disabled:bg-red-400 text-white py-3 rounded-lg font-medium transition-colors"
+                  >
+                    {updating ? 'Updating...' : 'Update Playlist'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={cancelEdit}
+                    disabled={updating}
+                    className="flex-1 bg-gray-200 hover:bg-gray-300 disabled:bg-gray-100 text-gray-800 py-3 rounded-lg font-medium transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
         {/* Playlists Grid */}
         {playlists.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -262,8 +399,7 @@ const PlaylistsPage = () => {
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              // Add edit functionality here
-                              setShowMenu(null);
+                              handleEdit(playlist);
                             }}
                             className="w-full text-left px-4 py-2 hover:bg-gray-50 flex items-center gap-2 text-sm"
                           >

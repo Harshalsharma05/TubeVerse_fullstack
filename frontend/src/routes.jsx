@@ -11,24 +11,27 @@ import MyContent from './pages/MyContent';
 import Subscriptions from './pages/Subscriptions';
 import PlaylistsPage from './pages/PlaylistsPage';
 import PlaylistDetailPage from './pages/PlaylistDetailPage';
+import Settings from './pages/Settings';
+import ProtectedRoute from './components/common/ProtectedRoute';
+import Tweets from './pages/Tweets';
 
 export const routes = [
     {
         path: '/',
         element: <Layout />,
         children: [
-        { path: '/', element: <Home /> },
-        { path: '/liked', element: <LikedVideos /> },
-        { path: '/history', element: <History /> },
-        { path: '/my-content', element: <MyContent /> },
-        { path: '/playlists', element: <PlaylistsPage />},
-        { path: '/playlists/:playlistId', element: <PlaylistDetailPage />},
-        { path: '/subscriptions', element: <Subscriptions /> },
-        { path: '/tweets', element: <div>Tweets</div> },
-        { path: '/settings', element: <div>Settings</div> },
+        { path: '/', element: <ProtectedRoute> <Home /> </ProtectedRoute> },
+        { path: '/liked', element: <ProtectedRoute>  <LikedVideos /> </ProtectedRoute>},
+        { path: '/history', element: <ProtectedRoute>  <History /> </ProtectedRoute>},
+        { path: '/my-content', element: <ProtectedRoute>  <MyContent /> </ProtectedRoute>},
+        { path: '/playlists', element: <ProtectedRoute>  <PlaylistsPage /></ProtectedRoute>},
+        { path: '/playlists/:playlistId', element: <ProtectedRoute>  <PlaylistDetailPage /></ProtectedRoute>},
+        { path: '/subscriptions', element: <ProtectedRoute>  <Subscriptions /> </ProtectedRoute>},
+        { path: '/tweets', element: <Tweets /> },
+        { path: '/settings', element: <ProtectedRoute>  <Settings /> </ProtectedRoute>},
         { path: '/search', element: <div>Search Results</div> },
-        { path: '/watch/:videoId', element: <Watch /> },
-        { path: '/channel/:username', element: <Profile /> },
+        { path: '/watch/:videoId', element: <ProtectedRoute>  <Watch /> </ProtectedRoute>},
+        { path: '/channel/:username', element: <ProtectedRoute>  <Profile /> </ProtectedRoute>},
         ],
     },
     {

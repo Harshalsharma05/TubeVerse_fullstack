@@ -35,9 +35,12 @@ const toggleSubscription = asyncHandler(async (req, res) => {
         return res
         .status(200)
         .json(
-            new ApiResponse(200, subscribe, "Channel subscribed")
+            new ApiResponse(200, {
+                subscription: subscribe,
+                isSubscribed: true
+            }, 
+            "Channel subscribed")
         )
-
     }
 
     const unsubscribe = await Subscription.deleteOne(subscribed._id)
@@ -49,7 +52,36 @@ const toggleSubscription = asyncHandler(async (req, res) => {
     return res
     .status(200)
     .json(
-        new ApiResponse(200, {}, "Channel Unsubscribed")
+        new ApiResponse(200, {isSubscribed: false}, "Channel Unsubscribed")
+    )
+})
+
+const getSubscriptionStatus = asyncHandler(async (req, res) => {
+    const {channelId} = req.params
+
+    if (!channelId || !isValidObjectId(channelId)) {
+        throw new ApiError(400, "Missing or Invalid channel ID");
+    }
+
+    const userId = req.user?._id
+
+    const subscription = await Subscription.findOne({
+        channel: channelId,
+        subscriber: userId
+    })
+
+    if(!subscription) {
+        return res
+        .status(200)
+        .json(
+            new ApiResponse(200, {isSubscribed: false}, "User is not subscribed to the channel")
+        )
+    }
+
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(200, {isSubscribed: true}, "User is subscribed to the channel")
     )
 })
 
@@ -168,5 +200,6 @@ const getSubscribedChannels = asyncHandler(async (req, res) => {
 export {
     toggleSubscription,
     getUserChannelSubscribers,
-    getSubscribedChannels
+    getSubscribedChannels,
+    getSubscriptionStatus
 }
