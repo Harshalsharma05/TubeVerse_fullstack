@@ -53,7 +53,7 @@
 
 ### 🌍 Deployment
 - **Frontend** deployed on [Vercel](https://tube-verse-fullstack-mern.vercel.app/)
-- **Backend** deployed on [Render](https://tubeverse-fullstack-mern.onrender.com/)
+- **Backend** deployed on [Render](https://render.com/)
 
 
 ---
