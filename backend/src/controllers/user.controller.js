@@ -350,8 +350,11 @@ const updateUserAvatar = asyncHandler(async(req, res) => {
         // const parts = currentUser.avatar.split("/");
         // const fileWithExt = parts[parts.length - 1];
         // const publicId = fileWithExt.split(".")[0];
-
-        await deleteFromCloudinary(avatar)
+        try {
+            await deleteFromCloudinary(currentUser.avatar)
+        } catch (error) {
+            console.error("Error deleting old avatar from cloudinary:", error);
+        }
     }
 
     const user = await User.findByIdAndUpdate(
@@ -383,6 +386,16 @@ const updateUserCoverImage = asyncHandler(async(req, res) => {
 
     if(!coverImage.url) {
         throw new ApiError(400, "Error while uploading on cloudinary")
+    }
+
+    // delete old image from the cloudinary
+    const currentUser = await User.findById(req.user?._id);
+    if(currentUser.coverImage) {
+        try {
+            await deleteFromCloudinary(currentUser.coverImage)
+        } catch (error) {
+            console.error("Error deleting old coverImage from cloudinary:", error);
+        }
     }
 
     const user = await User.findByIdAndUpdate(
