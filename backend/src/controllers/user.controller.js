@@ -640,6 +640,29 @@ const clearAVideoFromWatchHistory = asyncHandler(async (req, res) => {
         );
 });
 
+const deleteUserAccount = asyncHandler(async (req, res) => {
+    const userId = req.user?._id;
+
+    // Delete user account
+    const user = await User.findByIdAndDelete(userId);
+
+    if (!user) {
+        throw new ApiError(404, "User not found");
+    }
+
+    // Optionally, delete user's videos and other related data here
+
+    return res
+        .status(200)
+        .json(
+            new ApiResponse(
+                200,
+                {},
+                "User account deleted successfully"
+            )
+        );
+});
+
 export { 
     registerUser,
     loginUser,
@@ -654,5 +677,6 @@ export {
     getWatchHistory,
     addToWatchHistory,
     clearWatchHistory,
-    clearAVideoFromWatchHistory
+    clearAVideoFromWatchHistory,
+    deleteUserAccount
 }

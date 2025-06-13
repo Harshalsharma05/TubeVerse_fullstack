@@ -4,17 +4,17 @@ import {
   User,
   Mail,
   Save,
-  Upload,
-  X,
-  Check,
+  Trash2,
   AlertCircle,
   Eye,
   EyeOff,
   Lock,
 } from "lucide-react";
 import axios from "../config/axios.js"; // Adjust path according to your axios config
-import { useAuth } from '../context/AuthContext';// Adjust path according to your auth context
-import toast from 'react-hot-toast';
+import { useAuth } from "../context/AuthContext"; // Adjust path according to your auth context
+import toast from "react-hot-toast";
+import { logout } from "../utils/auth"
+
 
 const Settings = () => {
   const { user, setUser } = useAuth();
@@ -50,6 +50,10 @@ const Settings = () => {
     password: false,
     fetchingUser: true,
   });
+
+  // State for delete confirmation modal
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteConfirmation, setDeleteConfirmation] = useState("");
 
   // File input refs
   const avatarInputRef = useRef(null);
@@ -303,6 +307,46 @@ const Settings = () => {
       );
     } finally {
       setIsLoading((prev) => ({ ...prev, coverImage: false }));
+    }
+  };
+
+  // Handle account deletion
+  const handleDeleteAccount = async () => {
+    if (deleteConfirmation !== "DELETE") {
+      toast.error("Please type 'DELETE' to confirm account deletion");
+      return;
+    }
+
+    setIsLoading((prev) => ({ ...prev, deleteAccount: true }));
+
+    try {
+      await axios.delete("/users/delete-account");
+
+      toast.success("Account deleted successfully");
+
+      // Clear user context and redirect (you might want to handle this differently)
+      if (setUser) {
+        setUser(null);
+      }
+
+      // Close modal
+      setShowDeleteModal(false);
+      setDeleteConfirmation("");
+
+      // You might want to redirect to login page or home page here
+      // window.location.href = '/login';
+      if (typeof logout === "function") {
+        await logout();
+      }
+
+    } catch (error) {
+      const errorMessage =
+        error.response?.data?.message ||
+        "Failed to delete account. Please try again.";
+      toast.error(errorMessage);
+      console.error("Error deleting account:", error);
+    } finally {
+      setIsLoading((prev) => ({ ...prev, deleteAccount: false }));
     }
   };
 
@@ -628,9 +672,104 @@ const Settings = () => {
                 </div>
               </div>
             </div>
+            {/* Danger Zone - Delete Account */}
+            <div className="bg-white rounded-xl shadow-sm p-8 border-l-4 border-red-500">
+              <h3 className="text-xl font-semibold text-red-900 mb-4">
+                Danger Zone
+              </h3>
+              <div className="bg-red-50 p-6 rounded-lg">
+                <div className="flex items-start gap-4">
+                  <AlertCircle className="text-red-500 mt-1" size={20} />
+                  <div className="flex-1">
+                    <h4 className="font-medium text-red-900 mb-2">
+                      Delete Account
+                    </h4>
+                    <p className="text-red-700 text-sm mb-4">
+                      Once you delete your account, there is no going back.
+                      Please be certain. All your data, posts, and profile
+                      information will be permanently removed.
+                    </p>
+                    <button
+                      onClick={() => setShowDeleteModal(true)}
+                      className="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 transition-colors flex items-center gap-2 font-medium"
+                    >
+                      <Trash2 size={16} />
+                      Delete Account
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </div>
+
+      {/* Delete Account Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl max-w-md w-full p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 bg-red-100 rounded-full">
+                <AlertCircle className="text-red-600" size={24} />
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900">
+                Delete Account
+              </h3>
+            </div>
+
+            <div className="mb-6">
+              <p className="text-gray-600 mb-4">
+                This action cannot be undone. This will permanently delete your
+                account and remove all your data from our servers.
+              </p>
+
+              <p className="text-sm font-medium text-gray-900 mb-2">
+                Please type{" "}
+                <span className="bg-gray-100 px-2 py-1 rounded font-mono">
+                  DELETE
+                </span>{" "}
+                to confirm:
+              </p>
+
+              <input
+                type="text"
+                value={deleteConfirmation}
+                onChange={(e) => setDeleteConfirmation(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                placeholder="Type DELETE here"
+              />
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setShowDeleteModal(false);
+                  setDeleteConfirmation("");
+                }}
+                disabled={isLoading.deleteAccount}
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+
+              <button
+                onClick={handleDeleteAccount}
+                disabled={
+                  isLoading.deleteAccount || deleteConfirmation !== "DELETE"
+                }
+                className="flex-1 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {isLoading.deleteAccount ? (
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                ) : (
+                  <Trash2 size={16} />
+                )}
+                {isLoading.deleteAccount ? "Deleting..." : "Delete Account"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
