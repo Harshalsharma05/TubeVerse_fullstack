@@ -3,13 +3,14 @@ import axios from 'axios';
 const instance = axios.create({
     baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000/api/v1',
     withCredentials: true,
+    timeout: 10000
 });
 
-// Add a request interceptor to add the access token to all requests
 instance.interceptors.request.use(
     (config) => {
         const token = localStorage.getItem('accessToken');
         if (token) {
+            config.headers = config.headers || {};
             config.headers.Authorization = `Bearer ${token}`;
         }
         console.log('Request:', {
@@ -26,7 +27,6 @@ instance.interceptors.request.use(
     }
 );
 
-// Add a response interceptor to log all responses
 instance.interceptors.response.use(
     (response) => {
         console.log('Response:', {
@@ -36,11 +36,18 @@ instance.interceptors.response.use(
         return response;
     },
     (error) => {
-        console.error('Response Error:', {
-            status: error.response?.status,
-            data: error.response?.data,
-            message: error.message
-        });
+        if (error.response) {
+            console.error('Response Error:', {
+                status: error.response.status,
+                data: error.response.data,
+                message: error.message
+            });
+        } else {
+            console.error('Network/Error:', {
+                message: error.message,
+                stack: error.stack
+            });
+        }
         return Promise.reject(error);
     }
 );
