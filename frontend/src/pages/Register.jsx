@@ -66,7 +66,7 @@ const Register = () => {
                 formDataToSend.append('coverImage', formData.coverImage);
             }
             
-            console.log('Sending request to:', `${API_URL}/api/v1/users/register`);
+            console.log('Sending request to:', `${API_URL}/users/register`);
 
             const response = await axios.post(
                 '/users/register',

@@ -58,7 +58,7 @@ const Login = () => {
                 [formData.identifier.includes('@') ? 'email' : 'username']: formData.identifier
             };
 
-            console.log('Sending request to:', `${API_URL}/api/v1/users/login`);
+            console.log('Sending request to:', `${API_URL}/users/login`);
 
             const response = await axios.post(
                 '/users/login',
