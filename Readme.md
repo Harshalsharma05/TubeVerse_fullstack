@@ -51,6 +51,9 @@
 - Multer for handling file uploads
 - Cloudinary for storing videos/images
 
+### 🗃️ Database Model Link
+ - [Model Link](https://app.eraser.io/workspace/zRWGQq9sK7t2ite43gfY?origin=share)
+
 ### 🌍 Deployment
 - **Frontend** deployed on [Vercel](https://tube-verse-fullstack-mern.vercel.app/)
 - **Backend** deployed on [Render](https://render.com/)
