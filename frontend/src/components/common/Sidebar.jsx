@@ -42,8 +42,35 @@ const Sidebar = ({ isOpen }) => {
                     <SidebarItem icon={List} text="Playlists" to="/playlists" isCollapsed={!isOpen} />
                     <SidebarItem icon={Users} text="Subscriptions" to="/subscriptions" isCollapsed={!isOpen} />
                     <SidebarItem icon={MessageSquare} text="Tweets" to="/tweets" isCollapsed={!isOpen} />
+
+                    {/* Created By Section */}
+                    <div className={`mt-4 px-6 text-sm text-gray-700 ${!isOpen ? 'text-center px-2' : ''}`}>
+                        {isOpen ? (
+                            <>
+                                Created by:{' '}
+                                <a
+                                    href="https://github.com/Harshalsharma05"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-blue-600 hover:underline"
+                                >
+                                    Harshal Sharma
+                                </a>
+                            </>
+                        ) : (
+                            <a
+                                href="https://github.com/Harshalsharma05"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-600 hover:underline"
+                                title="Created by Harshal Sharma"
+                            >
+                                ©
+                            </a>
+                        )}
+                    </div>
                 </div>
-                
+
                 <div className="border-t py-2">
                     <SidebarItem icon={Settings} text="Settings" to="/settings" isCollapsed={!isOpen} />
                     <button 
